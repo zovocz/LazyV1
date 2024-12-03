@@ -1,0 +1,166 @@
+getgenv().Howl = {
+    Aimbot = {
+        Keybind = Enum.KeyCode.E,
+        AimBotSkid = 0,
+        Prediction = 0,
+
+        ShakeEnabled = false,
+        Shake = 0,
+
+        Amount = 0.160145,
+        Style = "Back",
+        Direction = "Inout",
+
+        TargetPart = "Head",
+    },
+    ['HitBox'] = {
+        Part = "Head",
+    },
+    ['Resolver'] = {
+        Enabled = true,
+    },
+    ['Silent'] = {
+        Prediction = 0,
+        Detection = { Close = 27, Mid = 38, Far = math.huge },
+    },
+    ['SpecificDis'] = {
+        Enabled = true,
+        Prediction = {
+            Close = 0,
+            Mid = 0,
+            Far = 0,
+        },
+    },
+    ['OffSets'] = {
+        Jump = { Amount = 0.90 },
+        Fall = { Amount = -1.50 },
+    },
+    ['FieldOfView'] = {
+        Enabled = false,
+        Size = 240,
+        Color = Color3.fromRGB(255, 255, 255),
+        Transparency = 1,
+        Filled = false,
+    },
+    ['Air'] = {
+        Enabled = true,
+        AirPart = "Head",
+    },
+    ['Checks'] = {
+        TargetDeath = true,
+        PlayerDeath = true,
+    },
+    ['Macro'] = {
+        Enabled = false,
+        Keybind = "x",
+        Speed = 0.0200,
+        Type = "Third", -- "First", "Third"
+    },
+    ['Spin'] = {
+        Enabled = true,
+        SpinSpeed = 4900,
+        Degrees = 360,
+        Keybind = Enum.KeyCode.V,
+    },
+}
+game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Lazy V1",
+        Text = "Loaded Camlock",
+        Duration = 1.000
+    })
+
+if (not getgenv().Loaded) then
+    local userInputService = game:GetService("UserInputService")
+    local Players = game:GetService("Players")
+    local Client = Players.LocalPlayer
+    local Plr = nil -- Initialize Plr here
+    local Locking = false
+
+    local function CheckAnti(Plr) -- // Anti-aim detection
+        if Plr.Character.Head.Velocity.Y < -70 then
+            return true
+        elseif Plr and (Plr.Character.Head.Velocity.X > 450 or Plr.Character.Head.Velocity.X < -35) then
+            return true
+        elseif Plr and Plr.Character.Head.Velocity.Y > 60 then
+            return true
+        elseif Plr and (Plr.Character.Head.Velocity.Z > 35 or Plr.Character.Head.Velocity.Z < -35) then
+            return true
+        else
+            return false
+        end
+    end
+
+    function getClosestPlayerToCursor()
+        local closestDist = math.huge
+        local closestPlr = nil
+        for _, v in ipairs(Players:GetPlayers()) do
+            if v ~= Client and v.Character and v.Character:FindFirstChild("Humanoid") and v.Character.Humanoid.Health > 0 then
+                local screenPos, cameraVisible = workspace.CurrentCamera:WorldToViewportPoint(v.Character.Head.Position)
+                if cameraVisible then
+                    local distToMouse = (Vector2.new(userInputService:GetMouseLocation().X, userInputService:GetMouseLocation().Y) - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
+                    if distToMouse < closestDist then
+                        closestPlr = v
+                        closestDist = distToMouse
+                    end
+                end
+            end
+        end
+        return closestPlr
+    end
+
+    userInputService.InputBegan:Connect(function(keygo, ok)
+        if (not ok) then
+            if (keygo.KeyCode == getgenv().Howl.Aimbot.Keybind) then
+                Locking = not Locking
+                if Locking then
+                    Plr = getClosestPlayerToCursor()
+                elseif not Locking then
+                    if Plr then
+                        Plr = nil
+                    end
+                end
+            end
+        end
+    end)
+
+    game:GetService("RunService").RenderStepped:Connect(function()
+        if Plr ~= nil and Plr.Character then
+            local Position = Plr.Character.Humanoid:GetState() == Enum.HumanoidStateType.Freefall
+                and Plr.Character[getgenv().Howl.Aimbot.TargetPart].Position + Vector3.new(0, getgenv().Howl.Aimbot.JumpOffset, 0)
+                or Plr.Character[getgenv().Howl.Aimbot.TargetPart].Position
+            if not CheckAnti(Plr) then
+                local Main = CFrame.new(workspace.CurrentCamera.CFrame.p, Position + ((Plr.Character.Head.Velocity) * getgenv().Howl.Aimbot.AimBotSkid))
+                workspace.CurrentCamera.CFrame = Main -- Direct assignment, no smoothing
+            else
+                local Main = CFrame.new(workspace.CurrentCamera.CFrame.p, Position + ((Plr.Character.Humanoid.MoveDirection * Plr.Character.Humanoid.WalkSpeed) * getgenv().Howl.Aimbot.AimBotSkid))
+                workspace.CurrentCamera.CFrame = Main -- Direct assignment, no smoothing
+            end
+        end
+        if getgenv().Howl.Checks.PlayerDeath == true and Plr and Plr.Character then
+            local KOd = Plr.Character:WaitForChild("BodyEffects")["K.O"].Value
+            local Grabbed = Plr.Character:FindFirstChild("GRABBING_CONSTRAINT") ~= nil
+            if Plr.Character.Humanoid.Health < 1 or KOd or Grabbed then
+                if Locking == true then
+                    Plr = nil
+                    Locking = false
+                end
+            end
+        end
+        if getgenv().Howl.Checks.TargetDeath == true and Plr and Plr.Character:FindFirstChild("Humanoid") then
+            if Plr.Character.Humanoid.health < 1 then
+                if Locking == true then
+                    Plr = nil
+                    Locking = false
+                end
+            end
+        end
+        if getgenv().Howl.Checks.PlayerDeath == true and Client.Character and Client.Character:FindFirstChild("Humanoid") and Client.Character.Humanoid.health < 1 then
+            if Locking == true then
+                Plr = nil
+                Locking = false
+            end
+        end
+    end)
+
+    getgenv().Loaded = true -- end of the script
+end
